@@ -1,8 +1,11 @@
 package usecase
 
 import (
+	"errors"
 	"institute/features/course"
 	"institute/features/course/dtos"
+	"institute/helpers"
+	"mime/multipart"
 
 	"github.com/labstack/gommon/log"
 	"github.com/mashingan/smapping"
@@ -53,29 +56,34 @@ func (svc *service) FindByID(courseID int) *dtos.ResCourse {
 	return &res
 }
 
-func (svc *service) Create(newCourse dtos.InputCourse) *dtos.ResCourse {
+func (svc *service) Create(newCourse dtos.InputCourse, file *multipart.FileHeader) (*dtos.ResCourse, error) {
 	course := course.Course{}
-	
-	err := smapping.FillStruct(&course, smapping.MapFields(newCourse))
+
+	url, err := svc.model.UploadFile(file, "")
 	if err != nil {
-		log.Error(err)
-		return nil
+		return nil, errors.New("upload image failed")
 	}
 
-	courseID := svc.model.Insert(course)
+	course.ID = helpers.NewGenerator().GenerateRandomID()
+	course.MediaFile = url
+	course.Author = newCourse.Author
+	course.Title = newCourse.Title
+	course.Description = newCourse.Description
 
-	if courseID == -1 {
-		return nil
+	result, err := svc.model.Insert(&course)
+	if err != nil {
+		log.Error(err)
+		return nil, errors.New("failed to create course")
 	}
 
 	resCourse := dtos.ResCourse{}
-	errRes := smapping.FillStruct(&resCourse, smapping.MapFields(newCourse))
-	if errRes != nil {
-		log.Error(errRes)
-		return nil
-	}
+	resCourse.ID = result.ID
+	resCourse.Author = result.Author
+	resCourse.MediaFile = result.MediaFile
+	resCourse.Title = result.Title
+	resCourse.Description = result.Description
 
-	return &resCourse
+	return &resCourse, nil
 }
 
 func (svc *service) Modify(courseData dtos.InputCourse, courseID int) bool {

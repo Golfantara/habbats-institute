@@ -1,5 +1,9 @@
 package dtos
 
 type ResCourse struct {
-	Name string `json:"name"`
+	ID 				int 			`json:"id" form:"id"`
+	MediaFile			string			`json:"media_file" form:"media_file"`
+	Title			string			`json:"title" form:"title"`
+	Description		string			`json:"description" form:"description"`
+	Author			string			`json:"author" form:"author"`
 }

@@ -72,12 +72,13 @@ func (ctl *controller) CourseDetails() echo.HandlerFunc {
 func (ctl *controller) CreateCourse() echo.HandlerFunc {
 	return func (ctx echo.Context) error  {
 		input := dtos.InputCourse{}
+		fileHeader, err := ctx.FormFile("media_file")
 
 		ctx.Bind(&input)
 
 		validate = validator.New(validator.WithRequiredStructEnabled())
 
-		err := validate.Struct(input)
+		err = validate.Struct(input)
 
 		if err != nil {
 			errMap := helpers.ErrorMapValidation(err)
@@ -86,7 +87,7 @@ func (ctl *controller) CreateCourse() echo.HandlerFunc {
 			}))
 		}
 
-		course := ctl.service.Create(input)
+		course, err := ctl.service.Create(input, fileHeader)
 
 		if course == nil {
 			return ctx.JSON(500, helper.Response("Something went Wrong!", nil))
