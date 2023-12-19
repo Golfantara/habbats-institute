@@ -1,19 +1,31 @@
 package repository
 
 import (
+	"fmt"
+	"institute/config"
 	"institute/features/course"
+	"institute/helpers"
+	"mime/multipart"
+	"time"
 
+	"github.com/cloudinary/cloudinary-go"
+	"github.com/cloudinary/cloudinary-go/api/uploader"
 	"github.com/labstack/gommon/log"
+	"golang.org/x/net/context"
 	"gorm.io/gorm"
 )
 
 type model struct {
 	db *gorm.DB
+	cdn *cloudinary.Cloudinary
+	config *config.ProgramConfig
 }
 
-func New(db *gorm.DB) course.Repository {
+func New(db *gorm.DB, cdn *cloudinary.Cloudinary, config *config.ProgramConfig) course.Repository {
 	return &model {
 		db: db,
+		cdn: cdn,
+		config: config,
 	}
 }
 
@@ -32,15 +44,15 @@ func (mdl *model) Paginate(page, size int) []course.Course {
 	return courses
 }
 
-func (mdl *model) Insert(newCourse course.Course) int64 {
+func (mdl *model) Insert(newCourse *course.Course) (*course.Course, error) {
 	result := mdl.db.Create(&newCourse)
 
 	if result.Error != nil {
 		log.Error(result.Error)
-		return -1
+		return nil, result.Error
 	}
 
-	return int64(newCourse.ID)
+	return newCourse, nil
 }
 
 func (mdl *model) SelectByID(courseID int) *course.Course {
@@ -74,4 +86,23 @@ func (mdl *model) DeleteByID(courseID int) int64 {
 	}
 
 	return result.RowsAffected
+}
+
+func (mdl *model) UploadFile(fileHeader *multipart.FileHeader, name string) (string, error){
+	file := helpers.OpenFileHeader(fileHeader)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cfg := mdl.config.CDN_Folder_Name
+
+	resp, err := mdl.cdn.Upload.Upload(ctx, file, uploader.UploadParams{
+		Folder: cfg,
+		PublicID: name,
+	})
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return "", nil
+	}
+	return resp.SecureURL, nil
 }

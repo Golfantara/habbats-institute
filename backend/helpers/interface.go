@@ -1,6 +1,10 @@
 package helpers
 
-import "github.com/golang-jwt/jwt/v5"
+import (
+	"mime/multipart"
+
+	"github.com/golang-jwt/jwt/v5"
+)
 
 type JWTInterface interface {
 	GenerateJWT(userID string, roleID string) map[string]any
@@ -17,4 +21,13 @@ type HashInterface interface {
 
 type ValidationInterface interface {
 	ValidateRequest(request any) []string
+}
+
+type OpenFileHeaderInterface interface {
+	OpenFileHeader(fileHeader *multipart.FileHeader) multipart.File
+}
+
+type GeneratorInterface interface {
+	GenerateRandomOTP() string
+	GenerateRandomID() int
 }

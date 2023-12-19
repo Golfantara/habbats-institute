@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"institute/config"
 	"institute/features/auth"
+	"institute/features/course"
 	"institute/helpers"
 	"institute/middlewares"
 	"institute/routes"
@@ -14,6 +15,10 @@ import (
 	ah "institute/features/auth/handler"
 	ar "institute/features/auth/repository"
 	au "institute/features/auth/usecase"
+
+	ch "institute/features/course/handler"
+	cr "institute/features/course/repository"
+	cu "institute/features/course/usecase"
 )
 
 func main() {
@@ -23,6 +28,7 @@ func main() {
 	
 	middlewares.LogMiddlewares(e)
 	routes.Auth(e, AuthHandler(), jwtService, *cfg)
+	routes.Courses(e, CourseHandler())
 
 	e.Start(fmt.Sprintf(":%s", cfg.SERVER_PORT))
 }
@@ -38,4 +44,15 @@ func AuthHandler() auth.Handler{
 	repo := ar.New(db)
 	uc := au.New(repo, jwt, hash, validation)
 	return ah.New(uc)
+}
+
+func CourseHandler() course.Handler {
+	config := config.InitConfig()
+	cdn := utils.CloudinaryInstance(*config)
+
+	db := utils.InitDB()
+
+	repo := cr.New(db, cdn, config)
+	uc :=	cu.New(repo)
+	return ch.New(uc)
 }
