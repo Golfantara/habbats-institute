@@ -28,22 +28,29 @@ func (ctl *controller) GetCourses() echo.HandlerFunc {
 	return func (ctx echo.Context) error  {
 		pagination := dtos.Pagination{}
 		ctx.Bind(&pagination)
-		
-		page := pagination.Page
-		size := pagination.Size
 
-		if page <= 0 || size <= 0 {
-			return ctx.JSON(400, helper.Response("Please provide query `page` and `size` in number!"))
+		if pagination.Page < 1 || pagination.PageSize < 1 {
+			pagination.Page = 1
+			pagination.PageSize = 20
 		}
 
-		courses := ctl.service.FindAll(page, size)
+		search := dtos.Search{}
+		ctx.Bind(&search)
+		
+		page := pagination.Page
+		pageSize := pagination.PageSize
+
+		courses, totalData := ctl.service.FindAll(page, pageSize, search)
 
 		if courses == nil {
 			return ctx.JSON(404, helper.Response("There is No Courses!"))
 		}
 
+		paginationResponse := helpers.PaginationResponse(page, pageSize, int(totalData))
+
 		return ctx.JSON(200, helper.Response("Success!", map[string]any {
 			"data": courses,
+			"pagination":paginationResponse,
 		}))
 	}
 }

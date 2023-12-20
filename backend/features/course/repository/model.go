@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"institute/config"
 	"institute/features/course"
+	"institute/features/course/dtos"
 	"institute/helpers"
 	"mime/multipart"
 	"time"
@@ -29,12 +30,12 @@ func New(db *gorm.DB, cdn *cloudinary.Cloudinary, config *config.ProgramConfig) 
 	}
 }
 
-func (mdl *model) Paginate(page, size int) []course.Course {
+func (mdl *model) Paginate(page, size int, search dtos.Search) []course.Course {
 	var courses []course.Course
 
 	offset := (page - 1) * size
 
-	result := mdl.db.Offset(offset).Limit(size).Find(&courses)
+	result := mdl.db.Offset(offset).Limit(size).Where("title LIKE ?",search.Title+"%").Find(&courses)
 	
 	if result.Error != nil {
 		log.Error(result.Error)
@@ -105,4 +106,31 @@ func (mdl *model) UploadFile(fileHeader *multipart.FileHeader, name string) (str
 		return "", nil
 	}
 	return resp.SecureURL, nil
+}
+
+func (mdl *model) GetTotalDataVacanciesBySearchAndFilter(search dtos.Search) int64 {
+	var totalData int64
+
+	result := mdl.db.Table("courses").
+		Where("title LIKE ?", "%"+search.Title+"%").Count(&totalData)
+
+	if result.Error != nil {
+		log.Error(result.Error)
+		return 0
+	}
+
+	return totalData
+}
+
+func (mdl *model) GetTotalDataCourse() int64 {
+	var totalData int64
+
+	result := mdl.db.Table("courses").Where("deleted_at IS NULL").Count(&totalData)
+
+	if result.Error != nil {
+		log.Error(result.Error)
+		return 0
+	}
+
+	return totalData
 }
