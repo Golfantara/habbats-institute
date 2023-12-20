@@ -21,10 +21,10 @@ func New(model course.Repository) course.Usecase {
 	}
 }
 
-func (svc *service) FindAll(page, size int) []dtos.ResCourse {
+func (svc *service) FindAll(page, size int, search dtos.Search) ([]dtos.ResCourse, int64) {
 	var courses []dtos.ResCourse
 
-	coursesEnt := svc.model.Paginate(page, size)
+	coursesEnt := svc.model.Paginate(page, size, search)
 
 	for _, course := range coursesEnt {
 		var data dtos.ResCourse
@@ -35,8 +35,14 @@ func (svc *service) FindAll(page, size int) []dtos.ResCourse {
 		
 		courses = append(courses, data)
 	}
+	var totalData int64 = 0
+	if search.Title != ""{
+		totalData = svc.model.GetTotalDataVacanciesBySearchAndFilter(search)
+	}else {
+		totalData = svc.model.GetTotalDataCourse()
+	}
 
-	return courses
+	return courses, totalData
 }
 
 func (svc *service) FindByID(courseID int) *dtos.ResCourse {
